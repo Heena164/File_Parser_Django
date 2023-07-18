@@ -51,11 +51,25 @@ class UploadDataView(APIView):
                 # Process each non-empty row of the CSV file
                 data.append(dict(zip(header, row)))
             
-            # Save the data to the Data model
+            # Save or update the data in the Data model
             for row in data:
-                try:
+                emp_id = row['Emp_id'] if row['Emp_id'] else None
+                existing_data = Data.objects.filter(Emp_id=emp_id).first()
+                if existing_data:
+                    existing_data.Name = row['Name']
+                    existing_data.Domain = row['Domain']
+                    existing_data.Year = row['Year'] if row['Year'] else None
+                    existing_data.Industry = row['Industry']
+                    existing_data.Size = row['Size']
+                    existing_data.Locality = row['Locality']
+                    existing_data.Country = row['Country']
+                    existing_data.Url = row['Url']
+                    existing_data.Current_Emp = row['Current_Emp'] if row['Current_Emp'] else None
+                    existing_data.Total_Emp = row['Total_Emp'] if row['Total_Emp'] else None
+                    existing_data.save()
+                else:
                     Data.objects.create(
-                        Emp_id=row['Emp_id'] if row['Emp_id'] else None,
+                        Emp_id=emp_id,
                         Name=row['Name'],
                         Domain=row['Domain'],
                         Year=row['Year'] if row['Year'] else None,
@@ -67,21 +81,7 @@ class UploadDataView(APIView):
                         Current_Emp=row['Current_Emp'] if row['Current_Emp'] else None,
                         Total_Emp=row['Total_Emp'] if row['Total_Emp'] else None
                     )
-                except ValueError:
-                    Data.objects.create(
-                        Emp_id=None,
-                        Name=row['Name'],
-                        Domain=row['Domain'],
-                        Year=None,
-                        Industry=row['Industry'],
-                        Size=row['Size'],
-                        Locality=row['Locality'],
-                        Country=row['Country'],
-                        Url=row['Url'],
-                        Current_Emp=None,
-                        Total_Emp=None
-                    )
-
+            
             return Response({'message': 'Data uploaded successfully.'})
         
         except Exception as e:
@@ -102,7 +102,6 @@ class QueryBuilderView(APIView):
         current_emp = request.data.get('Current_Emp')
         total_emp = request.data.get('Total_Emp')
 
-        queryset = Data.objects.all()
         filters = Q()
 
         # Add conditions to the Q object based on the provided parameters
@@ -112,25 +111,34 @@ class QueryBuilderView(APIView):
             filters &= Q(Name=name)
         if domain:
             filters &= Q(Domain=domain)
-        if year:
-            filters &= Q(Year=year)
         if industry:
             filters &= Q(Industry=industry)
         if size:
             filters &= Q(Size=size)
         if locality:
-            filters &= Q(Locality=locality)
+            filters &= Q(Locality=locality)            
         if country:
-            filters &= Q(Country=country)
+            filters &= Q(Country=country) 
         if url:
             filters &= Q(Url=url)
         if current_emp:
             filters &= Q(Current_Emp=current_emp)
         if total_emp:
             filters &= Q(Total_Emp=total_emp)
+        if year:
+            filters &= Q(Year=year) & Q(Year__isnull=True)
+        if year:
+            filters &= Q(Year__isnull=False)
+        # else:
+        #     filters &= Q(Year__isnull=False) 
+        
 
-        results = queryset.filter(filters)
-        count = results.count()
+
+        print("Filter------------------", filters)
+
+
+        queryset = Data.objects.filter(filters)
+        count = queryset.count()
 
         return Response({'count': count})
 

@@ -41,4 +41,4 @@ class Data(models.Model):
     Country = models.CharField(max_length=100, blank=True, null=True)
     Url = models.CharField(max_length=100, blank=True, null=True)
     Current_Emp = models.IntegerField(blank=True, null=True)
-    Total_Emp = models.IntegerField(blank=True, null=True)
+    Total_Emp = models.IntegerField(blank=True, null=True)     
